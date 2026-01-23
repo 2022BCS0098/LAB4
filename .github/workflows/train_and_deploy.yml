@@ -83,3 +83,4 @@ jobs:
         run: |
           gh variable set BEST_R2 --body "${{ steps.compare.outputs.current_r2 }}"
           gh variable set BEST_MSE --body "${{ steps.compare.outputs.current_mse }}"
+

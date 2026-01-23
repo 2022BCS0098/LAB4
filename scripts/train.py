@@ -4,7 +4,7 @@ import pandas as pd
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, f1_score
+from sklearn.metrics import mean_squared_error, r2_score
 
 # ------------------ LOAD DATA ------------------
 DATA_PATH = "dataset/winequality-red.csv"
@@ -27,22 +27,15 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
 # ------------------ METRICS ------------------
-# Regression metric
 mse = mean_squared_error(y_test, y_pred)
-
-# Convert regression output to binary classification for F1
-# Good wine: quality >= 6
-y_test_bin = (y_test >= 6).astype(int)
-y_pred_bin = (y_pred >= 6).astype(int)
-
-f1 = f1_score(y_test_bin, y_pred_bin)
+r2 = r2_score(y_test, y_pred)
 
 # ------------------ SAVE MODEL ------------------
 joblib.dump(model, "model.pkl")
 
 # ------------------ SAVE METRICS ------------------
 metrics = {
-    "f1": float(f1),
+    "r2": float(r2),
     "mse": float(mse)
 }
 
@@ -51,5 +44,5 @@ with open("metrics.json", "w") as f:
 
 # ------------------ LOGS ------------------
 print("Training complete")
-print(f"F1 Score: {f1}")
+print(f"R2 Score: {r2}")
 print(f"MSE: {mse}")

@@ -1,6 +1,7 @@
 name: Train and Deploy Model
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main

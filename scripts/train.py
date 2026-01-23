@@ -1,9 +1,9 @@
 import json
 import joblib
 import pandas as pd
+import numpy as np
 
 from sklearn.model_selection import train_test_split
-from sklearn.dummy import DummyRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 
 # ------------------ LOAD DATA ------------------
@@ -19,10 +19,15 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.3, random_state=42
 )
 
-# ------------------ DUMMY MODEL ------------------
-# Predicts the mean of training labels for every input
-model = DummyRegressor(strategy="mean")
-model.fit(X_train, y_train)
+# ------------------ DUMMY MODEL (WORST POSSIBLE) ------------------
+class ZeroRegressor:
+    def fit(self, X, y):
+        pass
+
+    def predict(self, X):
+        return np.zeros(len(X))
+
+model = ZeroRegressor()
 
 # ------------------ EVALUATION ------------------
 y_pred = model.predict(X_test)
@@ -42,7 +47,6 @@ metrics = {
 with open("metrics.json", "w") as f:
     json.dump(metrics, f, indent=4)
 
-# ------------------ LOGS ------------------
-print("DUMMY REGRESSOR RUN (EXPECTED TO FAIL DEPLOYMENT)")
+print("ZERO REGRESSOR RUN (GUARANTEED FAILURE)")
 print(f"R2 Score: {r2}")
 print(f"MSE: {mse}")

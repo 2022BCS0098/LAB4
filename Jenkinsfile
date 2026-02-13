@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_IMAGE = "kushal2022bcs0098/wine-inference"
-    }
-
     stages {
 
         stage('Checkout') {
@@ -13,7 +9,7 @@ pipeline {
             }
         }
 
-        stage('Setup Python Virtual Environment') {
+        stage('Install Dependencies') {
             steps {
                 sh '''
                 python3 -m venv venv
@@ -33,61 +29,44 @@ pipeline {
             }
         }
 
-        stage('Read Accuracy') {
+        stage('Read Metrics') {
             steps {
-                script {
-                    def metrics = readJSON file: 'app/artifacts/metrics.json'
-                    env.CURRENT_ACCURACY = metrics.accuracy.toString()
-                    echo "Current Accuracy: ${env.CURRENT_ACCURACY}"
-                }
+                sh '''
+                . venv/bin/activate
+                echo "===== MODEL METRICS ====="
+                echo "2022BCS0098 - Chindaluru Venkata Kushal Kumar"
+
+                python -c "
+import json
+m=json.load(open('metrics.json'))
+print('R2:',m['r2'])
+print('MSE:',m['mse'])
+"
+                '''
             }
         }
 
-        stage('Compare Accuracy') {
+        stage('Docker Build') {
             steps {
-                script {
-                    withCredentials([string(credentialsId: 'best-accuracy', variable: 'BEST_ACC')]) {
-                        if (env.CURRENT_ACCURACY.toFloat() > BEST_ACC.toFloat()) {
-                            env.IS_BETTER = "true"
-                            echo "New model is better!"
-                        } else {
-                            env.IS_BETTER = "false"
-                            echo "Model did not improve."
-                        }
-                    }
-                }
+                sh '''
+                docker build -t kushal2022bcs0098/wine-inference:latest .
+                '''
             }
         }
 
-        stage('Build Docker Image') {
-            when {
-                expression { env.IS_BETTER == "true" }
-            }
+        stage('Docker Push') {
             steps {
-                script {
-                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+                withCredentials([
+                    usernamePassword(credentialsId: 'dockerhub-creds',
+                                     usernameVariable: 'DOCKER_USERNAME',
+                                     passwordVariable: 'DOCKER_PASSWORD')
+                ]) {
+                    sh '''
+                    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                    docker push kushal2022bcs0098/wine-inference:latest
+                    '''
                 }
             }
-        }
-
-        stage('Push Docker Image') {
-            when {
-                expression { env.IS_BETTER == "true" }
-            }
-            steps {
-                script {
-                    docker.withRegistry('', 'dockerhub-creds') {
-                        docker.image("${DOCKER_IMAGE}:${BUILD_NUMBER}").push()
-                        docker.image("${DOCKER_IMAGE}:${BUILD_NUMBER}").push('latest')
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            archiveArtifacts artifacts: 'app/artifacts/**', fingerprint: true
         }
     }
 }
